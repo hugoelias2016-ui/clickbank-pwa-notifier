@@ -17,7 +17,15 @@ self.addEventListener('push', (event) => {
     requireInteraction: true,
     data: { url: '/' }
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+  event.waitUntil(
+    self.registration.showNotification(data.title, options).then(() => {
+      return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          client.postMessage({ type: 'PLAY_SOUND' });
+        }
+      });
+    })
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
