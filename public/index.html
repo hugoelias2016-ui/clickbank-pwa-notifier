@@ -27,8 +27,9 @@
     <button id="btn-subscribe">Ativar Alertas no Celular</button>
     <div id="status">Aguardando ativação...</div>
   </div>
-  <div style="margin-top: 15px; width: 100%; max-width: 450px;">
+  <div style="margin-top: 15px; width: 100%; max-width: 450px; display: flex; flex-direction: column; gap: 8px;">
     <button id="btn-test-sound" style="background: #334155; color: #f8fafc; font-size: 0.85rem; padding: 10px;">🔊 Testar Som da Caixa Registradora</button>
+    <button id="btn-trigger-test" style="background: #0284c7; color: #f8fafc; font-size: 0.85rem; padding: 10px;">📲 Disparar Teste de Notificação Push</button>
   </div>
   <div class="logs-header">Últimas Transações Recebidas</div>
   <div id="log-list"></div>
@@ -38,6 +39,7 @@
   <script>
     const btnSubscribe = document.getElementById('btn-subscribe');
     const btnTestSound = document.getElementById('btn-test-sound');
+    const btnTriggerTest = document.getElementById('btn-trigger-test');
     const statusDiv = document.getElementById('status');
     const logList = document.getElementById('log-list');
     const alertAudio = document.getElementById('audio-alert');
@@ -46,6 +48,28 @@
     btnTestSound.addEventListener('click', () => {
       alertAudio.currentTime = 0;
       alertAudio.play().catch(e => console.log('Erro ao tocar som:', e));
+    });
+
+    btnTriggerTest.addEventListener('click', async () => {
+      statusDiv.innerText = "Enviando alerta de teste...";
+      try {
+        const res = await fetch('/webhook/clickbank', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            transactionType: 'SALE',
+            amount: '347.00',
+            itemTitle: 'Comissão ClickBank'
+          })
+        });
+        if (res.ok) {
+          statusDiv.innerText = "Alerta de teste disparado com sucesso!";
+        } else {
+          statusDiv.innerText = "Erro ao disparar: " + res.status;
+        }
+      } catch (err) {
+        statusDiv.innerText = "Erro: " + err.message;
+      }
     });
 
     if ('serviceWorker' in navigator) {
@@ -75,27 +99,34 @@
       }
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
-        const sub = await registration.pushManager.getSubscription();
+        let sub = await registration.pushManager.getSubscription();
+
         if (sub) {
-          statusDiv.innerText = "Dispositivo registrado com sucesso!";
+          await fetch('/subscribe', {
+            method: 'POST',
+            body: JSON.stringify(sub),
+            headers: { 'Content-Type': 'application/json' }
+          }).catch(() => {});
+          statusDiv.innerText = "✅ Dispositivo conectado e pronto para receber alertas!";
           btnSubscribe.style.display = 'none';
         } else {
           statusDiv.innerText = "PWA instalado. Toque no botão para vincular alertas.";
         }
+
         btnSubscribe.addEventListener('click', async () => {
           alertAudio.play().then(() => alertAudio.pause()).catch(() => {});
           const keyRes = await fetch('/vapid-public-key');
           const { publicKey } = await keyRes.json();
-          const subscription = await registration.pushManager.subscribe({
+          sub = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: urlB64ToUint8Array(publicKey)
           });
           await fetch('/subscribe', {
             method: 'POST',
-            body: JSON.stringify(subscription),
+            body: JSON.stringify(sub),
             headers: { 'Content-Type': 'application/json' }
           });
-          statusDiv.innerText = "Dispositivo registrado com sucesso!";
+          statusDiv.innerText = "✅ Dispositivo conectado e pronto para receber alertas!";
           btnSubscribe.style.display = 'none';
         });
       } catch (err) {
