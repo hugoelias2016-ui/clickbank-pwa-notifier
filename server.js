@@ -71,6 +71,10 @@ app.get('/api/transactions', (req, res) => {
   res.json(recentTransactions);
 });
 
+app.get('/api/subscribers-count', (req, res) => {
+  res.json({ count: subscriptions.length });
+});
+
 function decryptClickbankPayload(encryptedJson, secretKey) {
   const { notification, iv } = encryptedJson;
   const ivBuffer = Buffer.from(iv, 'base64');
