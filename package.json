@@ -1,0 +1,15 @@
+{
+  "name": "clickbank-pwa-notifier",
+  "version": "1.0.0",
+  "description": "PWA para alertas de vendas da ClickBank via Web Push",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "web-push": "^3.6.7"
+  }
+}
